@@ -20,7 +20,7 @@ class Post(PostBase):
     created_at: datetime
 
     class Config:
-        orm_model = True
+        model_config = {"from_attributes": True}
 
 
 class UserCreate(BaseModel):
@@ -31,7 +31,13 @@ class UserCreate(BaseModel):
 class UserOut(BaseModel):
     id: int
     email: EmailStr
+    created_at: datetime
 
     # for the reopnse schema
     class Config:
-        orm_mode = True
+        model_config = {"from_attributes": True}
+
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str

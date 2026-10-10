@@ -10,7 +10,8 @@ from app.database import engine, get_db
 from sqlalchemy.orm import Session
 from app import schemas
 from passlib.context import CryptContext
-from utils.security import hash_password, verify_password
+from app.utils.security import hash_password, verify_password
+from app.routers import user, post, auth
 
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -53,82 +54,23 @@ def find_index_post(id: str):
     return None
 
 
+# ===== Attach rotuers to the app =========
+app.include_router(user.router)
+app.include_router(post.router)
+app.include_router(auth.router)
+
+
+# ======================================= #
+
+
 # ===== Path Operation ================
 @app.get('/')
 async def root():
     return {'message': 'Hello world. Welcome to my API'}
 
 
-@app.get('/posts', status_code=status.HTTP_200_OK, response_model=List[schemas.Post])
-async def get_posts(db: Session=Depends(get_db)):
-    posts = db.query(models.Post).all()
-    return posts
 
 
-@app.post('/posts', status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
-async def create_post(post: schemas.PostCreate, db: Session=Depends(get_db)):
-    new_post = models.Post(**post.model_dump())
-    db.add(new_post)
-    db.commit()
-    db.refresh(new_post)
-
-    return new_post
 
 
-@app.get('/posts/latest')
-async def get_latest_post():
-    post = my_posts[len(my_posts)-1]
-
-    return {'data': post}
-
-
-@app.get('/posts/{id}', status_code=status.HTTP_200_OK, response_model=schemas.Post)
-async def get_post(id: str, response: Response, db: Session=Depends(get_db)):
-    post = db.query(models.Post).filter(models.Post.id == id)
-    
-    if post.first() == None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Post with id: {id} was not found!"
-        )
-    return post
-
-
-@app.delete('/posts/{id}', status_code=status.HTTP_204_NO_CONTENT)
-async def delete_post(id: str, db: Session=Depends(get_db)):
-    post = db.query(models.Post).filter(models.Post.id == id)
-
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@app.put('/posts/{id}', status_code=status.HTTP_200_OK, response_model=schemas.Post)
-def update_post(id: str, post: schemas.PostUpdate, db: Session = Depends(get_db)):
-    post_query = db.query(models.Post).filter(models.Post.id == id)
-    post_obj = post_query.first()
-    
-    if not post_obj:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='Post not found'
-        )
-    post_query.update(post.model_dump(), synchronize_session=False)
-    db.commit()
-
-    return post_query.first()
-
-
-@app.post('/users', status_code=status.HTTP_201_CREATED, response_model=schemas.UserOut)
-async def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-
-    # has the password - user.password
-    hash_pwd = hash_password(user.password)
-    user.password = hash_pwd
-
-    new_user = models.User(**user.model_dump())
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-
-    return new_user
-
-# 6:12 
+# 07:14
